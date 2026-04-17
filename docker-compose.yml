@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zt-portal
+    ports:
+      - "7443:443"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=zt_portal
+      - DB_USER=ztportal
+      - DB_PASS=${DB_PASS}
+      - MT_API_URL=${MT_API_URL:-https://10.0.40.1/rest}
+      - MT_API_USER=${MT_API_USER:-api_portal}
+      - MT_API_PASS=${MT_API_PASS}
+      - APP_SECRET=${APP_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - zt-net
+
+  db:
+    image: mysql:8.0
+    container_name: zt-portal-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}
+      - MYSQL_DATABASE=zt_portal
+      - MYSQL_USER=ztportal
+      - MYSQL_PASSWORD=${DB_PASS}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    # ports:
+    #   - "3307:3306"   # uncomment αν θες εξωτερική πρόσβαση στη MySQL
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASS}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - zt-net
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  zt-net:
+    driver: bridge

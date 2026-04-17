@@ -1,0 +1,55 @@
+# Secrets & environment
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Backup files (.bak, .bkp, .bkp2, ._, ~)
+*.bak
+*.bkp
+*.bkp2
+*._
+*~
+docker-compose.yml.bak
+
+# Database dumps
+*.sql.gz
+zt-portal-db-dump.sql
+dump-*.sql
+backup-*.sql
+
+# MikroTik scripts (περιέχουν keys/passwords)
+*.rsc
+
+# Dependencies
+vendor/
+node_modules/
+composer.phar
+
+# Python venv
+venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+logs/
+
+# SSL certs (generated at build time)
+docker/ssl/
+*.crt
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/
+
+# Docker overrides
+docker-compose.override.yml
+
+# Internal planning docs (comment out ό,τι θες να γίνει public)
+PROJECT_SPECS.md
+WG_CLAUDE_CODE_PROMPT.md

@@ -1,0 +1,12 @@
+.git
+.env
+docker/php
+docker/playwright
+docker/unified
+*.bkp
+*.bkp2
+*._
+db_data
+WG_CLAUDE_CODE_PROMPT.md
+QNAP_SETUP.md
+.dockerignore

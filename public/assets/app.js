@@ -177,8 +177,14 @@ function initPortal() {
             grantBtn.disabled = true;
             grantBtn.textContent = 'Activating...';
             const rid = grantBtn.dataset.resourceId;
+            const card = grantBtn.closest('.resource-card');
+            const autoOpenUrl = card?.dataset.autoOpenUrl || '';
             const res = await api('POST', '/api/access/grant', { resource_id: parseInt(rid) });
             if (res.success) {
+                // Open the target service in a new tab before reload (browsers block popups triggered after async ops only if they lose the user-gesture context; opened synchronously in the click handler scope)
+                if (autoOpenUrl) {
+                    window.open(autoOpenUrl, '_blank', 'noopener');
+                }
                 location.reload();
             } else {
                 alert(res.error || 'Failed to activate');
@@ -517,7 +523,7 @@ async function loadResources() {
     const res = await api('GET', '/api/admin/resources');
     const tbody = document.getElementById('resources-body');
     if (!res.resources?.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">No resources</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">No resources</td></tr>';
         return;
     }
     tbody.innerHTML = res.resources.map(r => `
@@ -527,6 +533,7 @@ async function loadResources() {
             <td class="mono">${esc(r.address_list_name)}</td>
             <td class="mono">${esc(r.dst_address)}</td>
             <td class="mono">${esc(r.dst_port)}</td>
+            <td class="mono">${esc(r.domain_name || '—')}</td>
             <td>${esc(r.protocol)}</td>
             <td>${r.timeout_minutes}min</td>
             <td><span class="badge ${r.enabled ? 'badge-active' : 'badge-inactive'}">${r.enabled ? 'Active' : 'Disabled'}</span></td>
@@ -553,6 +560,8 @@ async function editResource(id) {
     document.getElementById('rf-proto').value = r.protocol;
     document.getElementById('rf-timeout').value = r.timeout_minutes;
     document.getElementById('rf-desc').value = r.description || '';
+    const dom = document.getElementById('rf-domain');
+    if (dom) dom.value = r.domain_name || '';
 }
 
 // ── Admin Permissions ──

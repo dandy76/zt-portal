@@ -30,10 +30,16 @@
     </div>
     <?php endif; ?>
 
-    <?php foreach ($resources ?? [] as $resource): ?>
+    <?php foreach ($resources ?? [] as $resource):
+        // Prefer domain_name if set, fall back to dst_address. First port only (in case of 445,139 etc).
+        $autoOpenHost = !empty($resource['domain_name']) ? $resource['domain_name'] : $resource['dst_address'];
+        $firstPort = preg_split('/[,\s]+/', (string) $resource['dst_port'])[0] ?? '';
+        $autoOpenUrl = $firstPort !== '' ? sprintf('https://%s:%s', $autoOpenHost, $firstPort) : '';
+    ?>
     <div class="resource-card <?= $resource['active'] ? 'resource-active' : 'resource-inactive' ?>"
          data-resource-id="<?= $resource['id'] ?>"
-         data-expires="<?= $resource['expires_in_seconds'] ?>">
+         data-expires="<?= $resource['expires_in_seconds'] ?>"
+         data-auto-open-url="<?= htmlspecialchars($autoOpenUrl, ENT_QUOTES) ?>">
         <div class="resource-status">
             <span class="status-dot <?= $resource['active'] ? 'dot-active' : 'dot-inactive' ?>"></span>
             <span class="status-label"><?= $resource['active'] ? 'ACTIVE' : 'INACTIVE' ?></span>

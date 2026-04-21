@@ -28,7 +28,10 @@ class TOTP
 
     public function __construct()
     {
-        $this->issuer = Settings::get('totp_issuer', 'ZT-Portal');
+        // env TOTP_ISSUER wins — lets each deployment brand the authenticator entry
+        // (e.g. "local-ztPortal", "qubber-ztPortal") without DB changes.
+        $envIssuer = getenv('TOTP_ISSUER') ?: ($_ENV['TOTP_ISSUER'] ?? '');
+        $this->issuer = $envIssuer !== '' ? $envIssuer : Settings::get('totp_issuer', 'ZT-Portal');
         $this->tfa = new TwoFactorAuth(
             qrcodeprovider: new NullQRProvider(),
             issuer: $this->issuer,
@@ -40,6 +43,11 @@ class TOTP
     public function generateSecret(): string
     {
         return $this->tfa->createSecret();
+    }
+
+    public function getIssuer(): string
+    {
+        return $this->issuer;
     }
 
     public function verifyCode(string $secret, string $code): bool

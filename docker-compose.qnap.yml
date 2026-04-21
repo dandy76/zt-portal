@@ -15,6 +15,7 @@ services:
       - MT_API_USER=${MT_API_USER:-api_portal}
       - MT_API_PASS=${MT_API_PASS}
       - APP_SECRET=${APP_SECRET}
+      - TOTP_ISSUER=${TOTP_ISSUER:-ZT-Portal}
     depends_on:
       db:
         condition: service_healthy

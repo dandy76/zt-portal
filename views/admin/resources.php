@@ -66,6 +66,11 @@
             </div>
         </div>
         <div class="form-group">
+            <label for="rf-domain">Domain Name (optional)</label>
+            <input type="text" id="rf-domain" name="domain_name" placeholder="budibase.lan">
+            <small class="text-muted">Αν δοθεί, μετά το Activate θα ανοίγει <code>https://&lt;domain&gt;:&lt;port&gt;</code>. Αλλιώς <code>https://&lt;dst_address&gt;:&lt;port&gt;</code>.</small>
+        </div>
+        <div class="form-group">
             <label for="rf-desc">Description</label>
             <textarea id="rf-desc" name="description" rows="2"></textarea>
         </div>
@@ -85,6 +90,7 @@
                 <th>Address List</th>
                 <th>Destination</th>
                 <th>Port</th>
+                <th>Domain</th>
                 <th>Protocol</th>
                 <th>Timeout</th>
                 <th>Status</th>
@@ -92,7 +98,7 @@
             </tr>
         </thead>
         <tbody id="resources-body">
-            <tr><td colspan="9" class="text-muted">Loading...</td></tr>
+            <tr><td colspan="10" class="text-muted">Loading...</td></tr>
         </tbody>
     </table>
 </div>

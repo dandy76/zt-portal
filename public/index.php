@@ -48,8 +48,7 @@ $router->get('/setup-2fa', function () {
     $totp = new TOTP();
     $secret = $totp->generateSecret();
     $_SESSION['pending_totp_secret'] = $secret;
-    $issuer = Settings::get('totp_issuer', 'ZT-Portal');
-    $qrUrl = $totp->getQRCodeUrl($issuer, $user['username'], $secret);
+    $qrUrl = $totp->getQRCodeUrl($totp->getIssuer(), $user['username'], $secret);
     Router::view('setup-2fa', ['qrUrl' => $qrUrl, 'secret' => $secret, 'user' => $user]);
 });
 
@@ -368,15 +367,16 @@ $router->post('/api/admin/resources', function () {
     $protocol = $input['protocol'] ?? 'tcp';
     $timeoutMinutes = (int) ($input['timeout_minutes'] ?? 10);
     $description = trim($input['description'] ?? '');
+    $domainName = trim($input['domain_name'] ?? '') ?: null;
 
     if (!$name || !$addressListName || !$dstAddress || !$dstPort) {
         Router::json(['error' => 'Name, address list, destination and port required'], 400);
     }
 
     $id = Database::insert(
-        'INSERT INTO resources (name, description, address_list_name, dst_address, dst_port, protocol, timeout_minutes)
-         VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [$name, $description, $addressListName, $dstAddress, $dstPort, $protocol, $timeoutMinutes]
+        'INSERT INTO resources (name, description, address_list_name, dst_address, dst_port, domain_name, protocol, timeout_minutes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [$name, $description, $addressListName, $dstAddress, $dstPort, $domainName, $protocol, $timeoutMinutes]
     );
 
     AuditLog::log('admin_create_resource', Auth::userId(), json_encode(['resource' => $name]));
@@ -399,6 +399,10 @@ $router->put('/api/admin/resources/{id}', function (array $params) {
             $fields[] = "$field = ?";
             $values[] = trim($input[$field]);
         }
+    }
+    if (array_key_exists('domain_name', $input)) {
+        $fields[] = 'domain_name = ?';
+        $values[] = trim((string) $input['domain_name']) ?: null;
     }
     if (isset($input['timeout_minutes'])) {
         $fields[] = 'timeout_minutes = ?';

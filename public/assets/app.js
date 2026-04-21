@@ -491,6 +491,7 @@ function initAdminResources() {
             protocol: document.getElementById('rf-proto').value,
             timeout_minutes: parseInt(document.getElementById('rf-timeout').value),
             description: document.getElementById('rf-desc').value,
+            domain_name: document.getElementById('rf-domain')?.value || '',
         };
 
         if (editId) {

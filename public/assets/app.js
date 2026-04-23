@@ -705,6 +705,12 @@ function initAdminAudit() {
         auditPage = 1;
         loadAudit();
     });
+
+    // Click any details cell to toggle expand/collapse
+    table.addEventListener('click', (e) => {
+        const cell = e.target.closest('.audit-details');
+        if (cell) cell.classList.toggle('expanded');
+    });
 }
 
 async function loadAudit() {
@@ -735,7 +741,7 @@ async function loadAudit() {
             <td class="mono">${escTime(r.created_at)}</td>
             <td>${esc(r.username || '--')}</td>
             <td><span class="badge badge-${actionBadge(r.action)}">${esc(r.action)}</span></td>
-            <td class="mono" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.details || '')}</td>
+            <td class="mono audit-details" title="Κάνε κλικ για expand/collapse">${esc(r.details || '')}</td>
             <td class="mono">${esc(r.source_ip || '')}</td>
         </tr>
     `).join('');

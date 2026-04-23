@@ -511,6 +511,31 @@ a:hover { text-decoration: underline; }
   font-size: 0.78rem;
 }
 
+/* Audit details: collapsed by default, click to expand. */
+.audit-details {
+  max-width: 400px;
+  max-height: 2.6em;
+  overflow: hidden;
+  word-break: break-all;
+  white-space: pre-wrap;
+  cursor: pointer;
+  position: relative;
+}
+.audit-details:not(.expanded)::after {
+  content: "";
+  position: absolute;
+  right: 0; bottom: 0; left: 0;
+  height: 1.2em;
+  background: linear-gradient(to bottom, transparent, var(--bg-secondary, #1a1d24));
+  pointer-events: none;
+}
+.audit-details.expanded {
+  max-width: none;
+  max-height: none;
+  white-space: pre-wrap;
+  background: var(--bg-tertiary);
+}
+
 /* ── Badges ── */
 .badge {
   display: inline-block;

@@ -50,6 +50,16 @@ Thumbs.db
 # Docker overrides
 docker-compose.override.yml
 
+# Browser automation sessions
+.browser-sessions/
+
+# Vim swap files
+*.swp
+.*.swp
+
+# Image backups (too large for git)
+zt-portal-*.tar.gz
+
 # Internal planning docs (comment out ό,τι θες να γίνει public)
 PROJECT_SPECS.md
 WG_CLAUDE_CODE_PROMPT.md

@@ -565,69 +565,215 @@ async function editResource(id) {
     if (dom) dom.value = r.domain_name || '';
 }
 
-// ── Admin Permissions ──
+// ── Admin Permissions (grouped by user) ──
+const PermState = {
+    users: [],
+    resources: [],
+    permsByUser: new Map(), // user_id -> Map(resource_id -> permission_id)
+    expanded: new Set(),    // user_ids currently expanded
+    search: '',
+};
+
 function initAdminPermissions() {
-    const table = document.getElementById('permissions-table');
-    if (!table) return;
+    const listEl = document.getElementById('perm-list');
+    if (!listEl) return;
 
-    loadPermissions();
+    loadPermissionsData();
 
-    document.getElementById('btn-add-permission')?.addEventListener('click', async () => {
-        document.getElementById('perm-form-panel').style.display = 'block';
-        // Load users and resources for dropdowns
-        const [users, resources] = await Promise.all([
-            api('GET', '/api/admin/users'),
-            api('GET', '/api/admin/resources'),
-        ]);
-
-        const userSel = document.getElementById('pf-user');
-        userSel.innerHTML = '<option value="">Select user...</option>' +
-            (users.users || []).map(u => `<option value="${u.id}">${esc(u.username)}</option>`).join('');
-
-        const resSel = document.getElementById('pf-resource');
-        resSel.innerHTML = '<option value="">Select resource...</option>' +
-            (resources.resources || []).map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+    document.getElementById('perm-search')?.addEventListener('input', (e) => {
+        PermState.search = e.target.value.trim().toLowerCase();
+        renderPermissionsList();
     });
 
-    document.getElementById('btn-cancel-permission')?.addEventListener('click', () => {
-        document.getElementById('perm-form-panel').style.display = 'none';
+    document.getElementById('btn-perm-expand-all')?.addEventListener('click', () => {
+        PermState.users.forEach(u => PermState.expanded.add(u.id));
+        renderPermissionsList();
     });
 
-    document.getElementById('permission-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await api('POST', '/api/admin/permissions', {
-            user_id: parseInt(document.getElementById('pf-user').value),
-            resource_id: parseInt(document.getElementById('pf-resource').value),
-        });
-        document.getElementById('perm-form-panel').style.display = 'none';
-        loadPermissions();
+    document.getElementById('btn-perm-collapse-all')?.addEventListener('click', () => {
+        PermState.expanded.clear();
+        renderPermissionsList();
     });
 
-    table.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.btn-delete-perm');
-        if (btn) {
-            await api('DELETE', `/api/admin/permissions/${btn.dataset.id}`);
-            loadPermissions();
+    // Delegated events on the list
+    listEl.addEventListener('click', async (e) => {
+        const header = e.target.closest('.perm-user-header');
+        const editBtn = e.target.closest('.btn-perm-edit-user');
+        if (editBtn) {
+            e.stopPropagation();
+            openUserEdit(parseInt(editBtn.dataset.id, 10));
+            return;
         }
+        if (header) {
+            const uid = parseInt(header.dataset.id, 10);
+            if (PermState.expanded.has(uid)) PermState.expanded.delete(uid);
+            else PermState.expanded.add(uid);
+            renderPermissionsList();
+        }
+    });
+
+    listEl.addEventListener('change', async (e) => {
+        const cb = e.target.closest('.perm-resource-check');
+        if (!cb) return;
+        const userId = parseInt(cb.dataset.userId, 10);
+        const resourceId = parseInt(cb.dataset.resourceId, 10);
+        cb.disabled = true;
+        try {
+            const userPerms = PermState.permsByUser.get(userId) || new Map();
+            if (cb.checked) {
+                const res = await api('POST', '/api/admin/permissions', {
+                    user_id: userId, resource_id: resourceId,
+                });
+                if (res.id) {
+                    userPerms.set(resourceId, res.id);
+                    PermState.permsByUser.set(userId, userPerms);
+                }
+            } else {
+                const permId = userPerms.get(resourceId);
+                if (permId) {
+                    await api('DELETE', `/api/admin/permissions/${permId}`);
+                    userPerms.delete(resourceId);
+                }
+            }
+            updateUserCounter(userId);
+        } catch (err) {
+            cb.checked = !cb.checked;
+            alert('Permission change failed');
+        } finally {
+            cb.disabled = false;
+        }
+    });
+
+    // User edit panel
+    document.getElementById('btn-pue-cancel')?.addEventListener('click', () => {
+        document.getElementById('perm-user-edit').style.display = 'none';
+    });
+
+    document.getElementById('perm-user-edit-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('pue-id').value;
+        const data = {
+            display_name: document.getElementById('pue-display').value,
+            wireguard_ip: document.getElementById('pue-wgip').value,
+            role: document.getElementById('pue-role').value,
+        };
+        const pw = document.getElementById('pue-password').value;
+        if (pw) data.password = pw;
+        await api('PUT', `/api/admin/users/${id}`, data);
+        document.getElementById('perm-user-edit').style.display = 'none';
+        await loadPermissionsData();
     });
 }
 
-async function loadPermissions() {
-    const res = await api('GET', '/api/admin/permissions');
-    const tbody = document.getElementById('permissions-body');
-    if (!res.permissions?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No permissions</td></tr>';
+async function loadPermissionsData() {
+    const [usersRes, resourcesRes, permsRes] = await Promise.all([
+        api('GET', '/api/admin/users'),
+        api('GET', '/api/admin/resources'),
+        api('GET', '/api/admin/permissions'),
+    ]);
+    PermState.users = (usersRes.users || []).sort((a, b) =>
+        (a.username || '').localeCompare(b.username || ''));
+    PermState.resources = (resourcesRes.resources || []).sort((a, b) =>
+        (a.name || '').localeCompare(b.name || ''));
+    PermState.permsByUser = new Map();
+    for (const p of (permsRes.permissions || [])) {
+        const uid = p.user_id;
+        if (!PermState.permsByUser.has(uid)) PermState.permsByUser.set(uid, new Map());
+        PermState.permsByUser.get(uid).set(p.resource_id, p.id);
+    }
+    renderPermissionsList();
+}
+
+function renderPermissionsList() {
+    const listEl = document.getElementById('perm-list');
+    if (!listEl) return;
+    const q = PermState.search;
+    if (!PermState.users.length) {
+        listEl.innerHTML = '<div class="text-muted" style="padding:1rem">No users</div>';
         return;
     }
-    tbody.innerHTML = res.permissions.map(p => `
-        <tr>
-            <td class="mono">${p.id}</td>
-            <td>${esc(p.username)}</td>
-            <td>${esc(p.resource_name)}</td>
-            <td class="mono">${escTime(p.created_at)}</td>
-            <td><button class="btn btn-sm btn-danger btn-delete-perm" data-id="${p.id}">Revoke</button></td>
-        </tr>
-    `).join('');
+
+    const rows = [];
+    for (const u of PermState.users) {
+        const userPerms = PermState.permsByUser.get(u.id) || new Map();
+        // Search: match user fields OR any of their (granted) resource names
+        let matches = true;
+        if (q) {
+            const userHit = (u.username || '').toLowerCase().includes(q) ||
+                            (u.display_name || '').toLowerCase().includes(q);
+            const resHit = PermState.resources.some(r =>
+                userPerms.has(r.id) && (r.name || '').toLowerCase().includes(q));
+            matches = userHit || resHit;
+        }
+        if (!matches) continue;
+
+        const isExpanded = PermState.expanded.has(u.id) || (q && q.length > 0);
+        const grantedCount = userPerms.size;
+        const totalResources = PermState.resources.length;
+
+        rows.push(`
+            <div class="perm-user-block${isExpanded ? ' expanded' : ''}" data-user-id="${u.id}">
+                <div class="perm-user-header" data-id="${u.id}">
+                    <span class="perm-caret">${isExpanded ? '▾' : '▸'}</span>
+                    <span class="perm-username mono">${esc(u.username)}</span>
+                    <span class="perm-displayname">${esc(u.display_name || '')}</span>
+                    <span class="badge badge-${u.role === 'admin' ? 'admin' : 'user'}">${u.role}</span>
+                    ${u.enabled
+                        ? '<span class="badge badge-active">Active</span>'
+                        : '<span class="badge badge-inactive">Disabled</span>'}
+                    <span class="perm-wgip mono text-muted">${esc(u.wireguard_ip)}</span>
+                    <span class="perm-counter" data-user-id="${u.id}">${grantedCount}/${totalResources}</span>
+                    <button class="btn btn-sm btn-secondary btn-perm-edit-user" data-id="${u.id}">Edit</button>
+                </div>
+                ${isExpanded ? renderResourceChecklist(u.id, userPerms, q) : ''}
+            </div>
+        `);
+    }
+
+    listEl.innerHTML = rows.length
+        ? rows.join('')
+        : '<div class="text-muted" style="padding:1rem">No matches</div>';
+}
+
+function renderResourceChecklist(userId, userPerms, q) {
+    if (!PermState.resources.length) {
+        return '<div class="perm-resources text-muted">No resources defined</div>';
+    }
+    const items = PermState.resources.map(r => {
+        const granted = userPerms.has(r.id);
+        const dim = q && !(r.name || '').toLowerCase().includes(q) && !granted;
+        return `
+            <label class="perm-resource-item${dim ? ' dim' : ''}">
+                <input type="checkbox" class="perm-resource-check"
+                       data-user-id="${userId}" data-resource-id="${r.id}"
+                       ${granted ? 'checked' : ''}>
+                <span class="perm-resource-name">${esc(r.name)}</span>
+                <span class="perm-resource-meta mono text-muted">${esc(r.address_list_name || '')}</span>
+            </label>
+        `;
+    }).join('');
+    return `<div class="perm-resources">${items}</div>`;
+}
+
+function updateUserCounter(userId) {
+    const el = document.querySelector(`.perm-counter[data-user-id="${userId}"]`);
+    if (!el) return;
+    const count = (PermState.permsByUser.get(userId) || new Map()).size;
+    el.textContent = `${count}/${PermState.resources.length}`;
+}
+
+function openUserEdit(userId) {
+    const user = PermState.users.find(u => u.id === userId);
+    if (!user) return;
+    const panel = document.getElementById('perm-user-edit');
+    document.getElementById('pue-username').textContent = user.username;
+    document.getElementById('pue-id').value = user.id;
+    document.getElementById('pue-display').value = user.display_name || '';
+    document.getElementById('pue-wgip').value = user.wireguard_ip || '';
+    document.getElementById('pue-role').value = user.role || 'user';
+    document.getElementById('pue-password').value = '';
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Admin Sessions ──

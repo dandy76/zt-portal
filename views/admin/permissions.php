@@ -2,56 +2,59 @@
     <h1>Permissions</h1>
     <div style="display:flex;gap:0.5rem;align-items:center">
         <button class="help-toggle" title="Help">?</button>
-        <button class="btn btn-primary btn-sm" id="btn-add-permission">+ Grant Permission</button>
+        <button class="btn btn-secondary btn-sm" id="btn-perm-expand-all">Expand all</button>
+        <button class="btn btn-secondary btn-sm" id="btn-perm-collapse-all">Collapse all</button>
     </div>
 </div>
 <div class="help-panel">
     <h3>User Permissions</h3>
-    <p>Assign resources to users. A user can only activate resources they have permission for.</p>
+    <p>Group view per user. Click το header για expand, τικάρε/ξετικάρε resources για grant/revoke (save γίνεται άμεσα).</p>
     <ul>
-        <li><strong>Grant</strong> — Select a user and resource to give them access</li>
-        <li><strong>Revoke</strong> — Remove a permission. If the user has an active session for that resource, it will NOT be killed automatically — use Sessions to kill active sessions</li>
+        <li><strong>Edit</strong> — άνοιγμα του user (display name, WG IP, role, password) χωρίς να φύγεις από τη σελίδα</li>
+        <li><strong>Search</strong> — φιλτράρει username, display name και resource name</li>
     </ul>
-    <p>Users see only their permitted resources on the portal page.</p>
 </div>
 
-<div id="perm-form-panel" class="panel form-panel" style="display:none">
-    <h2>Grant Permission</h2>
-    <form id="permission-form">
+<div class="panel" style="margin-bottom:0.75rem">
+    <input type="text" id="perm-search" class="form-input" placeholder="Search username / display name / resource..." style="width:100%">
+</div>
+
+<div id="perm-user-edit" class="panel form-panel" style="display:none">
+    <h2>Edit user <span id="pue-username" class="mono"></span></h2>
+    <form id="perm-user-edit-form">
+        <input type="hidden" id="pue-id">
         <div class="form-row">
             <div class="form-group">
-                <label for="pf-user">User</label>
-                <select id="pf-user" name="user_id" required>
-                    <option value="">Select user...</option>
-                </select>
+                <label for="pue-display">Display name</label>
+                <input type="text" id="pue-display" name="display_name">
             </div>
             <div class="form-group">
-                <label for="pf-resource">Resource</label>
-                <select id="pf-resource" name="resource_id" required>
-                    <option value="">Select resource...</option>
+                <label for="pue-wgip">WireGuard IP</label>
+                <input type="text" id="pue-wgip" name="wireguard_ip" placeholder="10.1.40.x or 0.0.0.0">
+            </div>
+            <div class="form-group">
+                <label for="pue-role">Role</label>
+                <select id="pue-role" name="role">
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
                 </select>
             </div>
         </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="pue-password">New password <span class="text-muted">(leave blank to keep)</span></label>
+                <input type="password" id="pue-password" name="password" autocomplete="new-password">
+            </div>
+        </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Grant</button>
-            <button type="button" class="btn btn-secondary" id="btn-cancel-permission">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary" id="btn-pue-cancel">Cancel</button>
         </div>
     </form>
 </div>
 
-<div class="panel">
-    <table class="data-table" id="permissions-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>User</th>
-                <th>Resource</th>
-                <th>Granted At</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="permissions-body">
-            <tr><td colspan="5" class="text-muted">Loading...</td></tr>
-        </tbody>
-    </table>
+<div class="panel" id="perm-list-panel">
+    <div id="perm-list" class="perm-list">
+        <div class="text-muted" style="padding:1rem">Loading...</div>
+    </div>
 </div>

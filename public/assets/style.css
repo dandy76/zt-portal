@@ -185,6 +185,21 @@ a:hover { text-decoration: underline; }
   border-color: var(--accent);
 }
 
+/* Standalone form input (outside .form-group) */
+.form-input {
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--text-secondary); opacity: 0.7; }
+
 .form-row {
   display: flex;
   gap: 1rem;
